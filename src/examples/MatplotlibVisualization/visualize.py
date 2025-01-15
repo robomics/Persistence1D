@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 marker_style = dict(linestyle='', color='0.8', markersize=10, mfc="C0", mec="C0")
-                    
+
 # Data for plotting
 data = np.genfromtxt("data.txt", delimiter=',', dtype=None)
 features = np.genfromtxt("res.txt", delimiter=',', dtype=None)
