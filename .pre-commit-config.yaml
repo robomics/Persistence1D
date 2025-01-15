@@ -1,0 +1,39 @@
+# Copyright (C) 2025 Roberto Rossini <roberros@uio.no>
+#
+# SPDX-License-Identifier: MIT
+
+default_language_version:
+  python: python3 # Defaults to python2, so override it.
+
+files: ^src/
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-shebang-scripts-are-executable
+      - id: check-symlinks
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: forbid-submodules
+      - id: mixed-line-ending
+        args:
+          - --fix=lf
+      - id: trailing-whitespace
+  # Formatters should be run late so that they can re-format any prior changes.
+  - repo: https://github.com/BlankSpruce/gersemi
+    rev: 0.18.0
+    hooks:
+      - id: gersemi
+        exclude: ^cmake/modules/
+
+  - repo: local
+    hooks:
+      - id: clang-format
+        name: clang-format
+        entry: clang-format
+        types_or: [c, c++]
+        language: python
+        args: ["-i"]
+        additional_dependencies: ["clang-format==19.1.1"]

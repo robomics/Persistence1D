@@ -31,3 +31,7 @@ _ReSharper*/
 output
 
 python/__pycache__
+
+.idea/
+cmake-*
+venv/
