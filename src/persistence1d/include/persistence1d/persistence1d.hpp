@@ -105,35 +105,35 @@ class Persistence1D {
   /*!
           Contain a copy of the original input data.
   */
-  std::vector<double> Data;
+  std::vector<double> _data{};
 
   /*!
           Contains a copy the value and index pairs of Data, sorted according to the data values.
   */
-  std::vector<TIdxAndData> SortedData;
+  std::vector<TIdxAndData> _sorted_data{};
 
   /*!
           Contains the Component assignment for each vertex in Data.
           Only edges of destroyed components are updated to the new component color.
           The Component values in this vector are invalid at the end of the algorithm.
   */
-  std::vector<std::int64_t> Colors;  // need to init to empty
+  std::vector<std::int64_t> _colors{};  // need to init to empty
 
   /*!
           A vector of Components.
           The component index within the vector is used as its Colors in the Watershed function.
   */
-  std::vector<TComponent> Components;
+  std::vector<TComponent> _components{};
 
   /*!
           A vector of paired extrema features - always a minimum and a maximum.
   */
-  std::vector<TPairedExtrema> PairedExtrema;
+  std::vector<TPairedExtrema> _poaired_extrema{};
 
-  std::size_t TotalComponents;  // keeps track of component vector size and newest component
-  // "color"
-  bool AliveComponentsVerified;  // Index of global minimum in Data vector. This minimum is never
-                                 // paired.
+  // keeps track of component vector size and newest component "color"
+  std::size_t _total_components{};
+  // Index of global minimum in Data vector. This minimum is never paired.
+  bool _alive_components_verified{};
 
  public:
   /*!
@@ -151,12 +151,12 @@ class Persistence1D {
     // If a user runs this on an empty vector, then they should not get the results of the previous
     // run.
     if (InputData.empty()) {
-      Data.clear();
+      _data.clear();
       Init();
       return false;
     }
 
-    Data = InputData;
+    _data = InputData;
     Init();
 
     CreateIndexValueVector();
@@ -193,7 +193,7 @@ class Persistence1D {
       std::cout << "Error. Threshold value must be greater than or equal to 0\n";
     }
     if (threshold == 0 && !matlabIndexing) {
-      PrintPairs(PairedExtrema);
+      PrintPairs(_poaired_extrema);
     } else {
       std::vector<TPairedExtrema> pairs;
       GetPairedExtrema(pairs, threshold, matlabIndexing);
@@ -221,17 +221,17 @@ class Persistence1D {
     // make sure the user does not use previous results that do not match the data
     pairs.clear();
 
-    if (PairedExtrema.empty() || threshold < 0.0) {
+    if (_poaired_extrema.empty() || threshold < 0.0) {
       return false;
     }
 
     const auto lower_bound = FilterByPersistence(threshold);
 
-    if (lower_bound == PairedExtrema.end()) {
+    if (lower_bound == _poaired_extrema.end()) {
       return false;
     }
 
-    pairs.insert(pairs.begin(), lower_bound, PairedExtrema.end());
+    pairs.insert(pairs.begin(), lower_bound, _poaired_extrema.end());
 
     if (offset != 0) {
       for (auto& p : pairs) {
@@ -260,16 +260,16 @@ class Persistence1D {
     min.clear();
     max.clear();
 
-    if (PairedExtrema.empty() || threshold < 0.0) {
+    if (_poaired_extrema.empty() || threshold < 0.0) {
       return false;
     }
 
     const auto lower_bound = FilterByPersistence(threshold);
-    const auto size = static_cast<std::size_t>(std::distance(lower_bound, PairedExtrema.end()));
+    const auto size = static_cast<std::size_t>(std::distance(lower_bound, _poaired_extrema.end()));
     min.reserve(size);
     max.reserve(size);
 
-    std::for_each(lower_bound, PairedExtrema.end(), [&](const auto& p) {
+    std::for_each(lower_bound, _poaired_extrema.end(), [&](const auto& p) {
       min.push_back(p.MinIndex + offset);
       max.push_back(p.MaxIndex + offset);
     });
@@ -281,12 +281,12 @@ class Persistence1D {
           via GetPairedExtrema and GetExtremaIndices.
   */
   [[nodiscard]] std::int64_t GetGlobalMinimumIndex(std::int64_t offset = 0) const noexcept {
-    if (Components.empty()) {
+    if (_components.empty()) {
       return -1;
     }
 
-    assert(Components.front().Alive);
-    return Components.front().MinIndex + offset;
+    assert(_components.front().Alive);
+    return _components.front().MinIndex + offset;
   }
 
   /*!
@@ -295,12 +295,12 @@ class Persistence1D {
           via GetPairedExtrema and GetExtremaIndices.
   */
   [[nodiscard]] double GetGlobalMinimumValue() const noexcept {
-    if (Components.empty()) {
+    if (_components.empty()) {
       return 0;
     }
 
-    assert(Components.front().Alive);
-    return Components.front().MinValue;
+    assert(_components.front().Alive);
+    return _components.front().MinValue;
   }
   /*!
           Runs basic sanity checks on results of RunPersistence:
@@ -333,7 +333,7 @@ class Persistence1D {
       return false;
     }
 
-    if ((globalMinIdx > (int)Data.size() - 1) || (globalMinIdx < -1)) {
+    if ((globalMinIdx > (int)_data.size() - 1) || (globalMinIdx < -1)) {
       return false;
     }
     if (globalMinIdx == -1 && !min.empty()) {
@@ -367,10 +367,10 @@ class Persistence1D {
     std::int64_t survivorIdx{};
     std::int64_t destroyedIdx{};
     // survivor - component whose hub is bigger
-    if (Components[firstIdx].MinValue < Components[secondIdx].MinValue) {
+    if (_components[firstIdx].MinValue < _components[secondIdx].MinValue) {
       survivorIdx = firstIdx;
       destroyedIdx = secondIdx;
-    } else if (Components[firstIdx].MinValue > Components[secondIdx].MinValue) {
+    } else if (_components[firstIdx].MinValue > _components[secondIdx].MinValue) {
       survivorIdx = secondIdx;
       destroyedIdx = firstIdx;
     } else if (firstIdx < secondIdx) {
@@ -385,20 +385,20 @@ class Persistence1D {
     }
 
     // survivor and destroyed are decided, now destroy!
-    Components[destroyedIdx].Alive = false;
+    _components[destroyedIdx].Alive = false;
 
     // Update the color of the edges of the destroyed component to the color of the surviving
     // component.
-    Colors[Components[destroyedIdx].RightEdgeIndex] = survivorIdx;
-    Colors[Components[destroyedIdx].LeftEdgeIndex] = survivorIdx;
+    _colors[_components[destroyedIdx].RightEdgeIndex] = survivorIdx;
+    _colors[_components[destroyedIdx].LeftEdgeIndex] = survivorIdx;
 
     // Update the relevant edge index of surviving component, such that it contains the destroyed
     // component's region.
-    if (Components[survivorIdx].MinIndex > Components[destroyedIdx].MinIndex) {
+    if (_components[survivorIdx].MinIndex > _components[destroyedIdx].MinIndex) {
       // destroyed index to the left of survivor, update left edge
-      Components[survivorIdx].LeftEdgeIndex = Components[destroyedIdx].LeftEdgeIndex;
+      _components[survivorIdx].LeftEdgeIndex = _components[destroyedIdx].LeftEdgeIndex;
     } else {
-      Components[survivorIdx].RightEdgeIndex = Components[destroyedIdx].RightEdgeIndex;
+      _components[survivorIdx].RightEdgeIndex = _components[destroyedIdx].RightEdgeIndex;
     }
   }
 
@@ -412,10 +412,10 @@ class Persistence1D {
 
     // There might be a potential bug here, todo (we're checking data, not sorted data)
     // example case: 1 1 1 1 1 1 -5 might remove if after else
-    if (Data[firstIdx] > Data[secondIdx]) {
+    if (_data[firstIdx] > _data[secondIdx]) {
       pair.MaxIndex = firstIdx;
       pair.MinIndex = secondIdx;
-    } else if (Data[secondIdx] > Data[firstIdx]) {
+    } else if (_data[secondIdx] > _data[firstIdx]) {
       pair.MaxIndex = secondIdx;
       pair.MinIndex = firstIdx;
     }
@@ -428,14 +428,14 @@ class Persistence1D {
       pair.MaxIndex = firstIdx;
     }
 
-    pair.Persistence = Data[pair.MaxIndex] - Data[pair.MinIndex];
+    pair.Persistence = _data[pair.MaxIndex] - _data[pair.MinIndex];
 
     assert(pair.Persistence >= 0);
-    if (PairedExtrema.capacity() == PairedExtrema.size()) {
-      PairedExtrema.reserve(PairedExtrema.size() * 2 + 1);
+    if (_poaired_extrema.capacity() == _poaired_extrema.size()) {
+      _poaired_extrema.reserve(_poaired_extrema.size() * 2 + 1);
     }
 
-    PairedExtrema.push_back(pair);
+    _poaired_extrema.push_back(pair);
   }
 
   // Changing the alignment of the next Doxygen comment block breaks its formatting.
@@ -452,15 +452,15 @@ class Persistence1D {
   void CreateComponent(const std::int64_t minIdx) {
     assert(minIdx >= 0);
     const auto i = static_cast<std::size_t>(minIdx);
-    TComponent comp{i, i, i, Data[i], true};
+    TComponent comp{i, i, i, _data[i], true};
 
     // place at the end of component vector and get the current size
-    if (Components.capacity() <= TotalComponents) {
-      Components.reserve(2 * TotalComponents + 1);
+    if (_components.capacity() <= _total_components) {
+      _components.reserve(2 * _total_components + 1);
     }
 
-    Components.push_back(comp);
-    Colors[minIdx] = static_cast<std::int64_t>(TotalComponents++);
+    _components.push_back(comp);
+    _colors[minIdx] = static_cast<std::int64_t>(_total_components++);
   }
 
   /*!
@@ -474,20 +474,20 @@ class Persistence1D {
           @param[in] 	dataIdx			Index of vertex which the component is extended to.
   */
   void ExtendComponent(const std::int64_t componentIdx, const std::int64_t dataIdx) {
-    assert(Components[componentIdx].Alive);
+    assert(_components[componentIdx].Alive);
 
     // extend to the left
-    if (dataIdx + 1 == Components[componentIdx].LeftEdgeIndex) {
-      Components[componentIdx].LeftEdgeIndex = dataIdx;
-    } else if (dataIdx - 1 == Components[componentIdx].RightEdgeIndex) {
+    if (dataIdx + 1 == _components[componentIdx].LeftEdgeIndex) {
+      _components[componentIdx].LeftEdgeIndex = dataIdx;
+    } else if (dataIdx - 1 == _components[componentIdx].RightEdgeIndex) {
       // extend to the right
-      Components[componentIdx].RightEdgeIndex = dataIdx;
+      _components[componentIdx].RightEdgeIndex = dataIdx;
     } else {
       throw std::runtime_error("ExtendComponent: index mismatch. Data index: " +
                                std::to_string(dataIdx));
     }
 
-    Colors[dataIdx] = componentIdx;
+    _colors[dataIdx] = componentIdx;
   }
 
   /*!
@@ -498,24 +498,24 @@ class Persistence1D {
           Note: SortedData is should be created before, separately, using CreateIndexValueVector()
   */
   void Init() {
-    SortedData.clear();
-    SortedData.reserve(Data.size());
+    _sorted_data.clear();
+    _sorted_data.reserve(_data.size());
 
-    Colors.clear();
-    Colors.resize(Data.size());
-    std::fill(Colors.begin(), Colors.end(), NO_COLOR);
+    _colors.clear();
+    _colors.resize(_data.size());
+    std::fill(_colors.begin(), _colors.end(), NO_COLOR);
 
     // starting reserved size >= 1 at least
-    const auto vectorSize = (Data.size() / RESIZE_FACTOR) + 1;
+    const auto vectorSize = (_data.size() / RESIZE_FACTOR) + 1;
 
-    Components.clear();
-    Components.reserve(vectorSize);
+    _components.clear();
+    _components.reserve(vectorSize);
 
-    PairedExtrema.clear();
-    PairedExtrema.reserve(vectorSize);
+    _poaired_extrema.clear();
+    _poaired_extrema.reserve(vectorSize);
 
-    TotalComponents = 0;
-    AliveComponentsVerified = false;
+    _total_components = 0;
+    _alive_components_verified = false;
   }
 
   /*!
@@ -523,16 +523,16 @@ class Persistence1D {
           Assumes Data is already set.
   */
   void CreateIndexValueVector() {
-    if (Data.empty()) {
+    if (_data.empty()) {
       return;
     }
 
-    for (std::size_t i = 0; i != Data.size(); ++i) {
+    for (std::size_t i = 0; i != _data.size(); ++i) {
       // this is going to make problems
-      SortedData.emplace_back(TIdxAndData{static_cast<std::int64_t>(i), Data[i]});
+      _sorted_data.emplace_back(TIdxAndData{static_cast<std::int64_t>(i), _data[i]});
     }
 
-    std::sort(SortedData.begin(), SortedData.end());
+    std::sort(_sorted_data.begin(), _sorted_data.end());
   }
 
   /*!
@@ -547,12 +547,12 @@ class Persistence1D {
      components.
   */
   void Watershed() {
-    if (SortedData.size() == 1) {
+    if (_sorted_data.size() == 1) {
       CreateComponent(0);
       return;
     }
 
-    for (auto& p : SortedData) {
+    for (auto& p : _sorted_data) {
       assert(p.Idx >= 0);
       const auto i0 = static_cast<std::size_t>(p.Idx - 1);  // this can overflow but it is fine
       const auto i = p.Idx;
@@ -562,50 +562,50 @@ class Persistence1D {
       // left most vertex - no left neighbor
       // two options - either local minimum, or extend component
       if (i == 0) {
-        if (Colors[i1] == NO_COLOR) {
+        if (_colors[i1] == NO_COLOR) {
           CreateComponent(i);
         } else {
-          ExtendComponent(Colors[i1], i);  // in this case, local max as well
+          ExtendComponent(_colors[i1], i);  // in this case, local max as well
         }
         continue;
       }
 
       // right most vertex - look only to the left
-      if (i == Colors.size() - 1) {
-        if (Colors[i0] == NO_COLOR) {
+      if (i == _colors.size() - 1) {
+        if (_colors[i0] == NO_COLOR) {
           CreateComponent(i);
         } else {
-          ExtendComponent(Colors[i0], i);
+          ExtendComponent(_colors[i0], i);
         }
         continue;
       }
 
       // look left and right
-      if (Colors[i0] == NO_COLOR && Colors[i1] == NO_COLOR) {
+      if (_colors[i0] == NO_COLOR && _colors[i1] == NO_COLOR) {
         // local minimum - create new component
         CreateComponent(i);
-      } else if (Colors[i0] != NO_COLOR && Colors[i1] == NO_COLOR) {
+      } else if (_colors[i0] != NO_COLOR && _colors[i1] == NO_COLOR) {
         // single neighbor on the left - extend
-        ExtendComponent(Colors[i0], i);
-      } else if (Colors[i0] == NO_COLOR && Colors[i1] != NO_COLOR) {
+        ExtendComponent(_colors[i0], i);
+      } else if (_colors[i0] == NO_COLOR && _colors[i1] != NO_COLOR) {
         // single component on the right - extend
-        ExtendComponent(Colors[i1], i);
-      } else if (Colors[i0] != NO_COLOR && Colors[i1] != NO_COLOR) {
+        ExtendComponent(_colors[i1], i);
+      } else if (_colors[i0] != NO_COLOR && _colors[i1] != NO_COLOR) {
         // local maximum - merge components
-        const auto leftComp = Colors[i0];
-        const auto rightComp = Colors[i1];
+        const auto leftComp = _colors[i0];
+        const auto rightComp = _colors[i1];
 
         // choose component with smaller hub destroyed component
-        if (Components[rightComp].MinValue < Components[leftComp].MinValue) {
+        if (_components[rightComp].MinValue < _components[leftComp].MinValue) {
           // left component has smaller hub
-          CreatePairedExtrema(static_cast<std::int64_t>(Components[leftComp].MinIndex), i);
+          CreatePairedExtrema(static_cast<std::int64_t>(_components[leftComp].MinIndex), i);
         } else {
           // either right component has smaller hub, or hubs are equal - destroy right component.
-          CreatePairedExtrema(static_cast<std::int64_t>(Components[rightComp].MinIndex), i);
+          CreatePairedExtrema(static_cast<std::int64_t>(_components[rightComp].MinIndex), i);
         }
 
         MergeComponents(leftComp, rightComp);
-        Colors[i] = Colors[i0];  // color should be correct at both sides at this point
+        _colors[i] = _colors[i0];  // color should be correct at both sides at this point
       }
     }
   }
@@ -614,7 +614,7 @@ class Persistence1D {
           Sorts the PairedExtrema list according to the persistence of the features.
           Orders features with equal persistence according the the index of their minima.
   */
-  void SortPairedExtrema() { std::sort(PairedExtrema.begin(), PairedExtrema.end()); }
+  void SortPairedExtrema() { std::sort(_poaired_extrema.begin(), _poaired_extrema.end()); }
 
   /*!
           Returns an iterator to the first element in PairedExtrema whose persistence is bigger or
@@ -626,11 +626,11 @@ class Persistence1D {
   [[nodiscard]] std::vector<TPairedExtrema>::const_iterator FilterByPersistence(
       const double threshold = 0) const {
     if (threshold <= 0) {
-      return PairedExtrema.begin();
+      return _poaired_extrema.begin();
     }
 
     const TPairedExtrema searchPair{0, 0, threshold};
-    return std::lower_bound(PairedExtrema.begin(), PairedExtrema.end(), searchPair);
+    return std::lower_bound(_poaired_extrema.begin(), _poaired_extrema.end(), searchPair);
   }
   /*!
           Runs at the end of RunPersistence, after Watershed.
@@ -640,17 +640,17 @@ class Persistence1D {
           - The Alive component should be the first component in the Component vector
   */
   void VerifyAliveComponents() const {
-    if (Components.empty()) {
+    if (_components.empty()) {
       return;
     }
     // verify that the Alive component is component #0 (contains global minimum by definition)
-    if (!Components.front().Alive) {
+    if (!_components.front().Alive) {
       throw std::runtime_error(
           "Error. Component 0 is not Alive, assumed to contain global minimum");
     }
 
-    for (std::size_t i = 1; i < Components.size(); ++i) {
-      if (Components[i].Alive) {
+    for (std::size_t i = 1; i < _components.size(); ++i) {
+      if (_components[i].Alive) {
         throw std::runtime_error("Error. Found more than one alive component");
       }
     }
