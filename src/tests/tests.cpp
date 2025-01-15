@@ -1,16 +1,15 @@
-#include <assert.h>
-#include <stdlib.h>
+#include <cassert>
+#include <cstdlib>
 
 #include "persistence1d/persistence1d.hpp"
 
-using namespace std;
 using namespace p1d;
 
 void SecondCallOnEmptyData() {
   Persistence1D p;
-  vector<TPairedExtrema> pairs;
-  vector<int> min, max;
-  vector<float> data1, data2;
+  std::vector<TPairedExtrema> pairs;
+  std::vector<int> min, max;
+  std::vector<float> data1, data2;
 
   data1.push_back(1.0);
   data1.push_back(2.0);
@@ -33,20 +32,20 @@ void SecondCallOnEmptyData() {
   assert(pairs.empty());
 
   assert(p.VerifyResults());
-  cout << "SecondCallOnEmptyData: passed" << endl;
+  std::cout << "SecondCallOnEmptyData: passed\n";
 }
 void MutliCallPersistence() {
   Persistence1D p;
-  vector<TPairedExtrema> pairs;
-  vector<int> min, max;
-  vector<float> data1, data2;
+  std::vector<TPairedExtrema> pairs;
+  std::vector<int> min, max;
+  std::vector<float> data1, data2;
 
   data1.push_back(1.0);
   data1.push_back(2.0);
   data1.push_back(3.0);
   data1.push_back(1.0);
 
-  data2 = vector<float>(data1);
+  data2 = std::vector<float>(data1);
   data2.push_back(4.0);
   data2.push_back(10.0);
   data2.push_back(-5.0);
@@ -88,13 +87,13 @@ void MutliCallPersistence() {
 
   assert(p.VerifyResults());
 
-  cout << "MutliCallPersistence: passed" << endl;
+  std::cout << "MutliCallPersistence: passed\n";
 }
 void RunOnEmptyData() {
   Persistence1D p;
-  vector<TPairedExtrema> pairs;
-  vector<int> min, max;
-  vector<float> data;
+  std::vector<TPairedExtrema> pairs;
+  std::vector<int> min, max;
+  std::vector<float> data;
 
   p.RunPersistence(data);
 
@@ -117,13 +116,13 @@ void RunOnEmptyData() {
 
   assert(p.VerifyResults());
 
-  cout << "RunOnEmptyData: passed" << endl;
+  std::cout << "RunOnEmptyData: passed\n";
 }
 void CallsBeforeRuns() {
   Persistence1D p;
-  vector<TPairedExtrema> pairs;
-  vector<int> min, max;
-  vector<float> data;
+  std::vector<TPairedExtrema> pairs;
+  std::vector<int> min, max;
+  std::vector<float> data;
 
   p.GetExtremaIndices(min, max);
   assert(min.empty());
@@ -144,14 +143,14 @@ void CallsBeforeRuns() {
 
   assert(p.VerifyResults());
 
-  cout << "CallsBeforeRuns: passed" << endl;
+  std::cout << "CallsBeforeRuns: passed\n";
 }
 void TestInputSizeOne() {
   Persistence1D p;
-  vector<TPairedExtrema> pairs;
-  vector<int> min, max;
+  std::vector<TPairedExtrema> pairs;
+  std::vector<int> min, max;
 
-  vector<float> data;
+  std::vector<float> data;
   data.push_back(10.0);
 
   p.RunPersistence(data);
@@ -166,14 +165,14 @@ void TestInputSizeOne() {
 
   assert(p.VerifyResults());
 
-  cout << "TestInputSizeOne: passed" << endl;
+  std::cout << "TestInputSizeOne: passed\n";
 }
 void TestInputSizeTwo() {
   Persistence1D p;
-  vector<TPairedExtrema> pairs;
-  vector<int> min, max;
+  std::vector<TPairedExtrema> pairs;
+  std::vector<int> min, max;
 
-  vector<float> data;
+  std::vector<float> data;
   data.push_back(10.0);
   data.push_back(20.0);
 
@@ -189,10 +188,10 @@ void TestInputSizeTwo() {
 
   assert(p.VerifyResults());
 
-  cout << "TestInputSizeTwo: passed" << endl;
+  std::cout << "TestInputSizeTwo: passed\n";
 }
 void RandomizedTesting() {
-  vector<float> data;
+  std::vector<float> data;
   int size = rand() % 10000;
   data.reserve(size);
 
