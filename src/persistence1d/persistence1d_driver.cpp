@@ -19,15 +19,15 @@
  *
  */
 
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 #include <string>
+#include <vector>
 
 #include "persistence1d/persistence1d.hpp"
 
-#define MATLAB "-MATLAB"
-
-using namespace std;
 using namespace p1d;
 
 /*!
@@ -43,7 +43,7 @@ using namespace p1d;
         @param[in] filename		Name of input file with float data.
         @param[out] data		Data is written to this vector.
 */
-bool ReadFileToVector(char* filename, vector<float>& data);
+bool ReadFileToVector(const std::string& filename, std::vector<float>& data);
 /*!
         Writes indices of extrema features to file, sorted according to their persistence.
 
@@ -56,7 +56,8 @@ bool ReadFileToVector(char* filename, vector<float>& data);
         @param[in] idxGlobalMin		Index of the global minimum.
 
 */
-void WriteExtremaToFile(char* filename, vector<TPairedExtrema> pairs, const int idxGlobalMin);
+void WriteExtremaToFile(const std::string& filename, const std::vector<TPairedExtrema>& pairs,
+                        int idxGlobalMin);
 /*!
         Parses user command line.
         Checks if the user set a threshold value or wants MATLAB indexing.
@@ -72,35 +73,31 @@ bool ParseCmdLine(int argc, char* argv[], float& threshold, bool& matlabIndexing
         Input file name is assumed to end with a three letter extension.
 */
 int main(int argc, char* argv[]) {
-  vector<float> data;
-  vector<int> indices;
+  std::vector<float> data;
+  std::vector<int> indices;
   float threshold;
-  vector<TPairedExtrema> pairs;
+  std::vector<TPairedExtrema> pairs;
   bool matlabIndexing;
   Persistence1D p;
 
   if (argc < 2) {
-    cout << "No filename" << endl;
-    cout << "Usage: " << argv[0] << " <filename> [threshold] [-MATLAB]" << endl;
-    return false;
+    std::cerr << "No filename\n";
+    std::cerr << "Usage: " << argv[0] << " <filename> [threshold] [-MATLAB]\n";
+    return 1;
   }
 
   // filename processing, easier done here.
-  char* filename = argv[1];
-  char* outfilename = new char[strlen(filename) + strlen("_res.txt")];
-  strcpy(outfilename, filename);
-
-  outfilename[strlen(filename) - 4] = '\0';
-  strcat(outfilename, "_res.txt");
+  const std::string filename{argv[1]};
+  const auto outfilename{std::string{filename} + "_res.txt"};
 
   if (!ParseCmdLine(argc, argv, threshold, matlabIndexing)) {
-    cout << "Usage: " << argv[0] << " <filename> [threshold] [-MATLAB]" << endl;
-    return -1;
+    std::cerr << "Usage: " << argv[0] << " <filename> [threshold] [-MATLAB]\n";
+    return 1;
   }
 
   if (!ReadFileToVector(filename, data)) {
-    cout << "Error reading data to file." << endl;
-    return -2;
+    std::cerr << "Error reading data to file.\n";
+    return 1;
   }
 
   p.RunPersistence(data);
@@ -108,19 +105,15 @@ int main(int argc, char* argv[]) {
   const int idxGlobalMin = p.GetGlobalMinimumIndex(matlabIndexing);
   WriteExtremaToFile(outfilename, pairs, idxGlobalMin);
 
-  delete outfilename;
-
   return 0;
 }
 
-bool ReadFileToVector(char* filename, vector<float>& data) {
-  ifstream datafile;
-
-  // check the datadfile actually exists
-  datafile.open(filename, ifstream::in);
+bool ReadFileToVector(const std::string& filename, std::vector<float>& data) {
+  // check the datafile actually exists
+  std::ifstream datafile(filename, std::ios::in);
 
   if (!datafile) {
-    cout << "Cannot open file " << filename << " for reading" << endl;
+    std::cerr << "Cannot open file " << filename << " for reading\n";
     return false;
   }
 
@@ -130,27 +123,25 @@ bool ReadFileToVector(char* filename, vector<float>& data) {
     data.push_back(currdata);
   }
 
-  datafile.close();
   return true;
 }
-void WriteExtremaToFile(char* filename, vector<TPairedExtrema> pairs, const int idxGlobalMin) {
-  ofstream datafile;
-  datafile.open(filename);
+
+void WriteExtremaToFile(const std::string& filename, const std::vector<TPairedExtrema>& pairs,
+                        const int idxGlobalMin) {
+  std::ofstream datafile(filename);
 
   if (!datafile) {
-    cout << "Cannot open file " << filename << " for writing." << endl;
+    std::cerr << "Cannot open file " << filename << " for writing.\n";
     return;
   }
 
-  for (vector<TPairedExtrema>::iterator p = pairs.begin(); p != pairs.end(); p++) {
-    datafile << to_string((long long)(*p).MinIndex) << endl;
-    datafile << to_string((long long)(*p).MaxIndex) << endl;
+  for (const auto& p : pairs) {
+    datafile << std::to_string(p.MinIndex) << '\n' << std::to_string(p.MaxIndex) << '\n';
   }
 
-  datafile << to_string((long long)idxGlobalMin) << endl;
-
-  datafile.close();
+  datafile << std::to_string(idxGlobalMin) << '\n';
 }
+
 bool ParseCmdLine(int argc, char* argv[], float& threshold, bool& matlabIndexing) {
   bool noErrors = true;
 
@@ -159,19 +150,19 @@ bool ParseCmdLine(int argc, char* argv[], float& threshold, bool& matlabIndexing
 
   // now let's find out if anyone wants MATLAB indexing or threshold values
   for (int counter = 2; counter < argc; counter++) {
-    if (argv[counter][0] == '-' && matlabIndexing == false) {
+    if (argv[counter][0] == '-' && !matlabIndexing) {
       if (strcmp(argv[counter], "-MATLAB") == 0 || strcmp(argv[counter], "-Matlab") == 0 ||
           strcmp(argv[counter], "-matlab") == 0) {
         // turn on matlab indexing
         matlabIndexing = true;
       } else {
-        cout << "Possibly misspelled Matlab flag or negative values for threshold." << endl;
+        std::cerr << "Possibly misspelled Matlab flag or negative values for threshold.\n";
         noErrors = false;
       }
     } else if (argv[counter][0] == '0')  // different from nullptr
     {
       // this doesn't throw exceptions, AKAIK
-      threshold = (float)atof(argv[counter]);
+      threshold = (float)std::atof(argv[counter]);
 
       // string begins with 0,
       // so it's ok that atof returns 0
@@ -179,22 +170,24 @@ bool ParseCmdLine(int argc, char* argv[], float& threshold, bool& matlabIndexing
 
       // check that value is positive - this really should not happen
       if (threshold < 0) {
-        cout << "Error. Threshold value should be >= 0. Rerun with valid threshold value or leave "
-                "out to get all features.\n";
+        std::cerr
+            << "Error. Threshold value should be >= 0. Rerun with valid threshold value or leave "
+               "out to get all features.\n";
         noErrors = false;
       }
     } else {
       // this doesn't throw exceptions, AKAIK
-      threshold = (float)atof(argv[counter]);
+      threshold = (float)std::atof(argv[counter]);
 
       // the string does not include a 0, but atof returns 0.
       // string cannot be converted to threshold value
       if (threshold == 0.0) {
-        cout << "Cannot convert threshold value to number.\n" << endl;
+        std::cerr << "Cannot convert threshold value to number.\n";
         noErrors = false;
       } else if (threshold < 0) {
-        cout << "Error. Threshold value should be >= 0. Rerun with valid threshold value or leave "
-                "out to get all features.\n";
+        std::cerr
+            << "Error. Threshold value should be >= 0. Rerun with valid threshold value or leave "
+               "out to get all features.\n";
         noErrors = false;
       }
     }
