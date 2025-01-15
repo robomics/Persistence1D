@@ -1,5 +1,7 @@
 #include <cassert>
+#include <cstdint>
 #include <cstdlib>
+#include <vector>
 
 #include "persistence1d/persistence1d.hpp"
 
@@ -8,8 +10,8 @@ using namespace p1d;
 void SecondCallOnEmptyData() {
   Persistence1D p;
   std::vector<TPairedExtrema> pairs;
-  std::vector<int> min, max;
-  std::vector<float> data1, data2;
+  std::vector<std::int64_t> min, max;
+  std::vector<double> data1, data2;
 
   data1.push_back(1.0);
   data1.push_back(2.0);
@@ -22,8 +24,8 @@ void SecondCallOnEmptyData() {
   p.RunPersistence(data2);
   p.GetExtremaIndices(min, max);
   p.GetPairedExtrema(pairs);
-  float minVal = p.GetGlobalMinimumValue();
-  int idx = p.GetGlobalMinimumIndex();
+  double minVal = p.GetGlobalMinimumValue();
+  std::int64_t idx = p.GetGlobalMinimumIndex();
 
   assert(minVal == 0);
   assert(idx == -1);
@@ -37,15 +39,15 @@ void SecondCallOnEmptyData() {
 void MutliCallPersistence() {
   Persistence1D p;
   std::vector<TPairedExtrema> pairs;
-  std::vector<int> min, max;
-  std::vector<float> data1, data2;
+  std::vector<std::int64_t> min, max;
+  std::vector<double> data1, data2;
 
   data1.push_back(1.0);
   data1.push_back(2.0);
   data1.push_back(3.0);
   data1.push_back(1.0);
 
-  data2 = std::vector<float>(data1);
+  data2 = std::vector<double>(data1);
   data2.push_back(4.0);
   data2.push_back(10.0);
   data2.push_back(-5.0);
@@ -78,11 +80,11 @@ void MutliCallPersistence() {
 
   // now check the filters:
   p.GetExtremaIndices(min, max, 10);
-  p.GetPairedExtrema(pairs, (float)2.1);
+  p.GetPairedExtrema(pairs, 2.1);
   assert(p.GetGlobalMinimumValue() == -5.0);
   assert(p.GetGlobalMinimumIndex() == 6);
-  assert(min.size() == 0);
-  assert(max.size() == 0);
+  assert(min.empty());
+  assert(max.empty());
   assert(pairs.size() == 1);
 
   assert(p.VerifyResults());
@@ -92,8 +94,8 @@ void MutliCallPersistence() {
 void RunOnEmptyData() {
   Persistence1D p;
   std::vector<TPairedExtrema> pairs;
-  std::vector<int> min, max;
-  std::vector<float> data;
+  std::vector<std::int64_t> min, max;
+  std::vector<double> data;
 
   p.RunPersistence(data);
 
@@ -121,8 +123,8 @@ void RunOnEmptyData() {
 void CallsBeforeRuns() {
   Persistence1D p;
   std::vector<TPairedExtrema> pairs;
-  std::vector<int> min, max;
-  std::vector<float> data;
+  std::vector<std::int64_t> min, max;
+  std::vector<double> data;
 
   p.GetExtremaIndices(min, max);
   assert(min.empty());
@@ -148,16 +150,16 @@ void CallsBeforeRuns() {
 void TestInputSizeOne() {
   Persistence1D p;
   std::vector<TPairedExtrema> pairs;
-  std::vector<int> min, max;
+  std::vector<std::int64_t> min, max;
 
-  std::vector<float> data;
+  std::vector<double> data;
   data.push_back(10.0);
 
   p.RunPersistence(data);
   p.GetPairedExtrema(pairs);
   p.GetExtremaIndices(min, max);
-  int minIdx = p.GetGlobalMinimumIndex();
-  float minVal = p.GetGlobalMinimumValue();
+  std::int64_t minIdx = p.GetGlobalMinimumIndex();
+  double minVal = p.GetGlobalMinimumValue();
 
   assert(pairs.empty() && min.empty() && max.empty());
   assert(minIdx == 0);
@@ -170,17 +172,17 @@ void TestInputSizeOne() {
 void TestInputSizeTwo() {
   Persistence1D p;
   std::vector<TPairedExtrema> pairs;
-  std::vector<int> min, max;
+  std::vector<std::int64_t> min, max;
 
-  std::vector<float> data;
+  std::vector<double> data;
   data.push_back(10.0);
   data.push_back(20.0);
 
   p.RunPersistence(data);
   p.GetPairedExtrema(pairs);
   p.GetExtremaIndices(min, max);
-  int minIdx = p.GetGlobalMinimumIndex();
-  float minVal = p.GetGlobalMinimumValue();
+  std::int64_t minIdx = p.GetGlobalMinimumIndex();
+  double minVal = p.GetGlobalMinimumValue();
 
   assert(pairs.empty() && min.empty() && max.empty());
   assert(minIdx != -1);
@@ -191,20 +193,21 @@ void TestInputSizeTwo() {
   std::cout << "TestInputSizeTwo: passed\n";
 }
 void RandomizedTesting() {
-  std::vector<float> data;
-  int size = rand() % 10000;
+  std::vector<double> data;
+  std::int64_t size = rand() % 10000;
   data.reserve(size);
 
   Persistence1D p;
 
   // create data
-  for (int i = 0; i < size; i++) {
-    data.push_back((float)rand());
+  for (std::int64_t i = 0; i < size; i++) {
+    data.push_back((double)rand());
   }
 
   p.RunPersistence(data);
   assert(p.VerifyResults());
 }
+
 int main() {
   TestInputSizeOne();
   TestInputSizeTwo();
@@ -212,7 +215,7 @@ int main() {
   CallsBeforeRuns();
   MutliCallPersistence();
   SecondCallOnEmptyData();
-  for (int i = 0; i < 100; i++) {
+  for (std::size_t i = 0; i < 100; i++) {
     RandomizedTesting();
   }
   return 0;

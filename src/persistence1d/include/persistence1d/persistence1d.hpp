@@ -7,8 +7,10 @@
 #include <algorithm>
 #include <cassert>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <stdexcept>
 #include <vector>
 
@@ -22,10 +24,10 @@ namespace p1d {
 */
 struct TIdxAndData {
   /// The index of the vertex within the Data vector.
-  int Idx{-1};
+  std::int64_t Idx{-1};
 
   /// Vertex data value from the original Data vector sent as an argument to RunPersistence.
-  float Data{0};
+  double Data{0};
 
   constexpr bool operator<(const TIdxAndData& other) const noexcept {
     if (Data < other.Data) {
@@ -46,14 +48,14 @@ struct TComponent {
   /// A component is defined by the indices of its edges.
   /// Both variables hold the respective indices of the vertices in Data vector.
   /// All vertices between them are considered to belong to this component.
-  int LeftEdgeIndex;
-  int RightEdgeIndex;
+  std::size_t LeftEdgeIndex;
+  std::size_t RightEdgeIndex;
 
   /// The index of the local minimum within the component as longs as its alive.
-  int MinIndex;
+  std::size_t MinIndex;
 
   /// The value of the Data[MinIndex].
-  float MinValue;  // redundant, but makes life easier
+  double MinValue;  // redundant, but makes life easier
 
   /// Set to true when a component is created. Once components are merged,
   /// the destroyed component Alive value is set to false.
@@ -67,15 +69,15 @@ struct TComponent {
 */
 struct TPairedExtrema {
   /// Index of local minimum, as per Data vector.
-  int MinIndex;
+  std::size_t MinIndex;
 
   /// Index of local maximum, as per Data vector.
-  int MaxIndex;
+  std::size_t MaxIndex;
 
   /// The persistence of the two extrema.
   /// Data[MaxIndex] - Data[MinIndex]
   /// Guaranteed to be >= 0.
-  float Persistence;
+  double Persistence;
 
   constexpr bool operator<(const TPairedExtrema& other) const noexcept {
     if (Persistence < other.Persistence) {
@@ -98,12 +100,12 @@ struct TPairedExtrema {
         Think of "data on a line", or a function f(x) over some domain xmin <= x <= xmax.
 */
 class Persistence1D {
-  static constexpr int NO_COLOR = -1;
+  static constexpr std::int64_t NO_COLOR = -1;
   static constexpr std::size_t RESIZE_FACTOR = 20;
   /*!
           Contain a copy of the original input data.
   */
-  std::vector<float> Data;
+  std::vector<double> Data;
 
   /*!
           Contains a copy the value and index pairs of Data, sorted according to the data values.
@@ -115,7 +117,7 @@ class Persistence1D {
           Only edges of destroyed components are updated to the new component color.
           The Component values in this vector are invalid at the end of the algorithm.
   */
-  std::vector<int> Colors;  // need to init to empty
+  std::vector<std::int64_t> Colors;  // need to init to empty
 
   /*!
           A vector of Components.
@@ -128,7 +130,7 @@ class Persistence1D {
   */
   std::vector<TPairedExtrema> PairedExtrema;
 
-  unsigned int TotalComponents;  // keeps track of component vector size and newest component
+  std::size_t TotalComponents;  // keeps track of component vector size and newest component
   // "color"
   bool AliveComponentsVerified;  // Index of global minimum in Data vector. This minimum is never
                                  // paired.
@@ -145,7 +147,7 @@ class Persistence1D {
 
           @param[in] InputData Vector of data to find features on, ordered according to its axis.
   */
-  bool RunPersistence(const std::vector<float>& InputData) {
+  bool RunPersistence(const std::vector<double>& InputData) {
     // If a user runs this on an empty vector, then they should not get the results of the previous
     // run.
     if (InputData.empty()) {
@@ -186,7 +188,7 @@ class Persistence1D {
           @param[in] threshold		Threshold value for pair persistence.
           @param[in] matlabIndexing	Use Matlab indexing for printing.
   */
-  void PrintResults(const float threshold = 0.0, const bool matlabIndexing = false) const {
+  void PrintResults(const double threshold = 0.0, const bool matlabIndexing = false) const {
     if (threshold < 0) {
       std::cout << "Error. Threshold value must be greater than or equal to 0\n";
     }
@@ -214,8 +216,8 @@ class Persistence1D {
           @param[in] matlabIndexing	Set this to true to change all indices of features to
      Matlab's 1-indexing.
   */
-  bool GetPairedExtrema(std::vector<TPairedExtrema>& pairs, const float threshold = 0,
-                        int offset = 0) const {
+  bool GetPairedExtrema(std::vector<TPairedExtrema>& pairs, const double threshold = 0,
+                        std::int64_t offset = 0) const {
     // make sure the user does not use previous results that do not match the data
     pairs.clear();
 
@@ -252,8 +254,8 @@ class Persistence1D {
   than or equal to threshold.
   @param[in]	matlabIndexing	Set this to true to change all indices to match Matlab's 1-indexing.
 */
-  bool GetExtremaIndices(std::vector<int>& min, std::vector<int>& max, const float threshold = 0,
-                         int offset = 0) const {
+  bool GetExtremaIndices(std::vector<std::int64_t>& min, std::vector<std::int64_t>& max,
+                         const double threshold = 0, std::int64_t offset = 0) const {
     // before doing anything, make sure the user does not use old results
     min.clear();
     max.clear();
@@ -278,7 +280,7 @@ class Persistence1D {
           The global minimum does not get paired and is not returned
           via GetPairedExtrema and GetExtremaIndices.
   */
-  [[nodiscard]] int GetGlobalMinimumIndex(int offset = 0) const noexcept {
+  [[nodiscard]] std::int64_t GetGlobalMinimumIndex(std::int64_t offset = 0) const noexcept {
     if (Components.empty()) {
       return -1;
     }
@@ -292,7 +294,7 @@ class Persistence1D {
           The global minimum does not get paired and is not returned
           via GetPairedExtrema and GetExtremaIndices.
   */
-  [[nodiscard]] float GetGlobalMinimumValue() const noexcept {
+  [[nodiscard]] double GetGlobalMinimumValue() const noexcept {
     if (Components.empty()) {
       return 0;
     }
@@ -311,9 +313,9 @@ class Persistence1D {
           Returns true if run results pass these sanity checks.
   */
   bool VerifyResults() {
-    std::vector<int> min{};
-    std::vector<int> max{};
-    std::vector<int> combinedIndices{};
+    std::vector<std::int64_t> min{};
+    std::vector<std::int64_t> max{};
+    std::vector<std::int64_t> combinedIndices{};
 
     GetExtremaIndices(min, max);
 
@@ -361,9 +363,9 @@ class Persistence1D {
           @param[in] firstIdx,secondIdx	Indices of components to be merged. Their order does not
      matter.
   */
-  void MergeComponents(const int firstIdx, const int secondIdx) {
-    int survivorIdx{};
-    int destroyedIdx{};
+  void MergeComponents(const std::int64_t firstIdx, const std::int64_t secondIdx) {
+    std::int64_t survivorIdx{};
+    std::int64_t destroyedIdx{};
     // survivor - component whose hub is bigger
     if (Components[firstIdx].MinValue < Components[secondIdx].MinValue) {
       survivorIdx = firstIdx;
@@ -405,7 +407,7 @@ class Persistence1D {
 
           @param[in] firstIdx, secondIdx Indices of vertices to be paired. Order does not matter.
   */
-  void CreatePairedExtrema(const int firstIdx, const int secondIdx) {
+  void CreatePairedExtrema(const std::int64_t firstIdx, const std::int64_t secondIdx) {
     TPairedExtrema pair{};
 
     // There might be a potential bug here, todo (we're checking data, not sorted data)
@@ -447,8 +449,10 @@ class Persistence1D {
 
   @param[in]	minIdx Index of a local minimum.
   */
-  void CreateComponent(const int minIdx) {
-    TComponent comp{minIdx, minIdx, minIdx, Data[minIdx], true};
+  void CreateComponent(const std::int64_t minIdx) {
+    assert(minIdx >= 0);
+    const auto i = static_cast<std::size_t>(minIdx);
+    TComponent comp{i, i, i, Data[i], true};
 
     // place at the end of component vector and get the current size
     if (Components.capacity() <= TotalComponents) {
@@ -456,7 +460,7 @@ class Persistence1D {
     }
 
     Components.push_back(comp);
-    Colors[minIdx] = TotalComponents++;
+    Colors[minIdx] = static_cast<std::int64_t>(TotalComponents++);
   }
 
   /*!
@@ -469,8 +473,8 @@ class Persistence1D {
      Colors[]).
           @param[in] 	dataIdx			Index of vertex which the component is extended to.
   */
-  void ExtendComponent(const int componentIdx, const int dataIdx) {
-    assert(Components[componentIdx].Alive == true);
+  void ExtendComponent(const std::int64_t componentIdx, const std::int64_t dataIdx) {
+    assert(Components[componentIdx].Alive);
 
     // extend to the left
     if (dataIdx + 1 == Components[componentIdx].LeftEdgeIndex) {
@@ -525,7 +529,7 @@ class Persistence1D {
 
     for (std::size_t i = 0; i != Data.size(); ++i) {
       // this is going to make problems
-      SortedData.emplace_back(TIdxAndData{static_cast<int>(i), Data[i]});
+      SortedData.emplace_back(TIdxAndData{static_cast<std::int64_t>(i), Data[i]});
     }
 
     std::sort(SortedData.begin(), SortedData.end());
@@ -549,55 +553,59 @@ class Persistence1D {
     }
 
     for (auto& p : SortedData) {
+      assert(p.Idx >= 0);
+      const auto i0 = static_cast<std::size_t>(p.Idx - 1);  // this can overflow but it is fine
       const auto i = p.Idx;
+      const auto i1 = static_cast<std::size_t>(p.Idx + 1);
+      const auto ii = p.Idx;
 
       // left most vertex - no left neighbor
       // two options - either local minimum, or extend component
       if (i == 0) {
-        if (Colors[i + 1] == NO_COLOR) {
+        if (Colors[i1] == NO_COLOR) {
           CreateComponent(i);
         } else {
-          ExtendComponent(Colors[i + 1], i);  // in this case, local max as well
+          ExtendComponent(Colors[i1], i);  // in this case, local max as well
         }
         continue;
       }
 
       // right most vertex - look only to the left
       if (i == Colors.size() - 1) {
-        if (Colors[i - 1] == NO_COLOR) {
+        if (Colors[i0] == NO_COLOR) {
           CreateComponent(i);
         } else {
-          ExtendComponent(Colors[i - 1], i);
+          ExtendComponent(Colors[i0], i);
         }
         continue;
       }
 
       // look left and right
-      if (Colors[i - 1] == NO_COLOR && Colors[i + 1] == NO_COLOR) {
+      if (Colors[i0] == NO_COLOR && Colors[i1] == NO_COLOR) {
         // local minimum - create new component
         CreateComponent(i);
-      } else if (Colors[i - 1] != NO_COLOR && Colors[i + 1] == NO_COLOR) {
+      } else if (Colors[i0] != NO_COLOR && Colors[i1] == NO_COLOR) {
         // single neighbor on the left - extend
-        ExtendComponent(Colors[i - 1], i);
-      } else if (Colors[i - 1] == NO_COLOR && Colors[i + 1] != NO_COLOR) {
+        ExtendComponent(Colors[i0], i);
+      } else if (Colors[i0] == NO_COLOR && Colors[i1] != NO_COLOR) {
         // single component on the right - extend
-        ExtendComponent(Colors[i + 1], i);
-      } else if (Colors[i - 1] != NO_COLOR && Colors[i + 1] != NO_COLOR) {
+        ExtendComponent(Colors[i1], i);
+      } else if (Colors[i0] != NO_COLOR && Colors[i1] != NO_COLOR) {
         // local maximum - merge components
-        const auto leftComp = Colors[i - 1];
-        const auto rightComp = Colors[i + 1];
+        const auto leftComp = Colors[i0];
+        const auto rightComp = Colors[i1];
 
         // choose component with smaller hub destroyed component
         if (Components[rightComp].MinValue < Components[leftComp].MinValue) {
           // left component has smaller hub
-          CreatePairedExtrema(Components[leftComp].MinIndex, i);
+          CreatePairedExtrema(static_cast<std::int64_t>(Components[leftComp].MinIndex), i);
         } else {
           // either right component has smaller hub, or hubs are equal - destroy right component.
-          CreatePairedExtrema(Components[rightComp].MinIndex, i);
+          CreatePairedExtrema(static_cast<std::int64_t>(Components[rightComp].MinIndex), i);
         }
 
         MergeComponents(leftComp, rightComp);
-        Colors[i] = Colors[i - 1];  // color should be correct at both sides at this point
+        Colors[i] = Colors[i0];  // color should be correct at both sides at this point
       }
     }
   }
@@ -616,7 +624,7 @@ class Persistence1D {
           @param[in]	threshold	Minimum persistence of features to be returned.
   */
   [[nodiscard]] std::vector<TPairedExtrema>::const_iterator FilterByPersistence(
-      const float threshold = 0) const {
+      const double threshold = 0) const {
     if (threshold <= 0) {
       return PairedExtrema.begin();
     }
