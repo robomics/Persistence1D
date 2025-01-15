@@ -79,10 +79,14 @@ struct TPairedExtrema {
   /// Guaranteed to be >= 0.
   float Persistence;
 
-  bool operator<(const TPairedExtrema& other) const {
-    if (Persistence < other.Persistence) return true;
-    if (Persistence > other.Persistence) return false;
-    return (MinIndex < other.MinIndex);
+  constexpr bool operator<(const TPairedExtrema& other) const noexcept {
+    if (Persistence < other.Persistence) {
+      return true;
+    }
+    if (Persistence > other.Persistence) {
+      return false;
+    }
+    return MinIndex < other.MinIndex;
   }
 };
 
