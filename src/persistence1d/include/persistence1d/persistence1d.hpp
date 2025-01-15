@@ -2,12 +2,10 @@
     Actual code.
 */
 
-#ifndef PERSISTENCE_H
-#define PERSISTENCE_H
-
-#include <assert.h>
+#pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
 #include <iterator>
 #include <vector>
@@ -25,19 +23,21 @@ namespace p1d {
    according to indices). The index allows access back to the vertex in the Data vector.
 */
 struct TIdxAndData {
-  TIdxAndData() : Idx(-1), Data(0) {}
-
-  bool operator<(const TIdxAndData& other) const {
-    if (Data < other.Data) return true;
-    if (Data > other.Data) return false;
-    return (Idx < other.Idx);
-  }
-
   /// The index of the vertex within the Data vector.
-  int Idx;
+  int Idx{-1};
 
   /// Vertex data value from the original Data vector sent as an argument to RunPersistence.
-  float Data;
+  float Data{0};
+
+  constexpr bool operator<(const TIdxAndData& other) const noexcept {
+    if (Data < other.Data) {
+      return true;
+    }
+    if (Data > other.Data) {
+      return false;
+    }
+    return Idx < other.Idx;
+  }
 };
 
 /*! Defines a component within the data domain.
@@ -675,4 +675,3 @@ class Persistence1D {
   }
 };
 }  // namespace p1d
-#endif
