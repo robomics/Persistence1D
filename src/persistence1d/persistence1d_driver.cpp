@@ -21,7 +21,7 @@
  */
 
 
-#include "persistence1d.hpp"
+#include "persistence1d/persistence1d.hpp"
 
 #include <fstream>
 #include <string>

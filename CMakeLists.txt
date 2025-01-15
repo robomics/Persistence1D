@@ -1,12 +1,14 @@
-cmake_minimum_required (VERSION 2.6) 
+cmake_minimum_required(VERSION 3.25)
+cmake_policy(VERSION 3.25...3.31)
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW)
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 
-project (PERSISTENCE1D) 
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+cmake_minimum_required(VERSION 2.6)
+
+project(Persistence1D LANGUAGES CXX)
+
 add_subdirectory(src)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-SET_PROPERTY(TARGET FilesAndFilters          PROPERTY FOLDER "Examples")
-SET_PROPERTY(TARGET MatlabVisualization      PROPERTY FOLDER "Examples")
-SET_PROPERTY(TARGET MatplotlibVisualization      PROPERTY FOLDER "Examples")
-SET_PROPERTY(TARGET SimpleDataVector         PROPERTY FOLDER "Examples")
-SET_PROPERTY(TARGET tests         PROPERTY FOLDER "Tests")
-
